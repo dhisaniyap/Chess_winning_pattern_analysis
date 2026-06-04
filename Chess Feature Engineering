@@ -1,0 +1,64 @@
+# Importing required libraries
+import pandas as pd
+
+# Loading and exploring Dataset
+data = pd.read_csv("chess.csv")
+df=pd.DataFrame(data)
+
+df.head()
+df.info()
+df.shape
+df.columns
+df.describe()
+
+# Data cleaning
+df.isnull().sum()
+df.duplicated().sum()
+df.drop_duplicates(inplace=True)
+df.duplicated().sum()
+df.columns=df.columns.str.lower().str.strip().str.replace(" ","_")
+df.columns
+
+# Remove unnecessary columns
+df.drop(columns=['moves','white_id','black_id'],inplace=True)
+
+# Exploring important categorical features
+col=['victory_status','winner','opening_eco','opening_name','opening_ply']
+for c in col:
+  print("----------------")
+  print(df[c].value_counts())
+
+# Feature engineering - Time Analysis
+df['start_at']=pd.to_datetime(df['created_at'].astype('int64'),unit='ms')
+df['end_at']=pd.to_datetime(df['last_move_at'].astype('int64'),unit='ms')
+df['game_duration_mins']=((df['end_at']-df['start_at']).dt.total_seconds()/60).round()
+df['game_duration_mins']
+
+# Extracting base and increment time
+df[['base_time','increment_time']]=df['increment_code'].str.split('+',expand=True)
+df['base_time']=df['base_time'].astype(int)
+df['increment_time']=df['increment_time'].astype(int)
+
+# Extracting match hour
+df['hour']=df['start_at'].dt.hour
+
+# Calculating rating difference between players
+df['rating_diff']=abs(df['white_rating']-df['black_rating'])
+df['rating_diff']
+
+# Creating custom game type category
+def type(x):
+  x=int(x)
+  if x<3:
+    return 'bullet'
+  elif x<=5:
+    return 'blitz'
+  elif x<=15:
+    return 'rapid'
+  else:
+    return 'classic'
+
+df['game_type']=df['base_time'].apply(type)
+
+# Exporting cleaned dataset
+df.to_csv('chess_cleaned_ds.csv',index=False)
